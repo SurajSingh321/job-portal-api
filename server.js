@@ -4,7 +4,7 @@ const bcrypt = require("bcrypt");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
-
+const PORT = process.env.PORT || 3000;
 const app = express();
 app.use(cors({origin:"*"}));
 app.use(express.json());
@@ -208,6 +208,6 @@ app.put("/applications/:id", verifyToken, isCompany, (req, res) => {
     );
 });
 
-app.listen(process.env.PORT, () => {
+app.listen(PORT, () => {
     console.log("Server running");
 });
