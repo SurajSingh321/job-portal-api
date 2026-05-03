@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Company Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial; background: #f0f2f5; }
+        nav { background: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        nav h1 { color: #667eea; }
+        .logout { padding: 8px 20px; background: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
+        .post-job { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 30px; }
+        .post-job h2 { margin-bottom: 20px; color: #333; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        input, textarea { width: 100%; padding: 12px; border: 2px solid #eee; border-radius: 8px; font-size: 14px; outline: none; }
+        input:focus, textarea:focus { border-color: #667eea; }
+        textarea { grid-column: 1/-1; height: 100px; resize: none; }
+        .post-btn { margin-top: 15px; padding: 12px 30px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: bold; }
+        .msg { color: #27ae60; margin-top: 10px; font-size: 14px; }
+        h2 { color: #333; margin-bottom: 20px; }
+        .job-card { background: white; padding: 20px 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 15px; }
+        .job-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .job-top h3 { color: #333; }
+        .job-actions { display: flex; gap: 10px; }
+        .view-btn { padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 13px; }
+        .del-btn { padding: 8px 15px; background: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 13px; }
+        .job-info { color: #999; font-size: 13px; }
+        /* Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal.show { display: flex; }
+        .modal-box { background: white; padding: 30px; border-radius: 12px; width: 600px; max-height: 80vh; overflow-y: auto; }
+        .modal-box h3 { margin-bottom: 20px; color: #333; }
+        .app-card { padding: 15px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .app-info p { color: #555; font-size: 14px; }
+        .app-info small { color: #999; font-size: 12px; }
+        .app-actions { display: flex; gap: 8px; }
+        .acc-btn { padding: 6px 12px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px; }
+        .rej-btn { padding: 6px 12px; background: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px; }
+        .close-btn { margin-top: 20px; padding: 10px 20px; background: #eee; border: none; border-radius: 5px; cursor: pointer; }
+        .status { padding: 4px 10px; border-radius: 20px; font-size: 12px; }
+        .status.pending { background: #fff3cd; color: #856404; }
+        .status.accepted { background: #d4edda; color: #155724; }
+        .status.rejected { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <nav>
+        <h1>💼 Company Dashboard</h1>
+        <button class="logout" onclick="logout()">Logout</button>
+    </nav>
+
+    <div class="container">
+        <!-- Job Post karo -->
+        <div class="post-job">
+            <h2>Post New Jobs</h2>
+            <div class="form-grid">
+                <input type="text" id="title" placeholder="Job Title">
+                <input type="text" id="company" placeholder="Company Name">
+                <input type="text" id="location" placeholder="Location">
+                <input type="number" id="salary" placeholder="Salary">
+                <textarea id="description" placeholder="Job Description"></textarea>
+            </div>
+            <button class="post-btn" onclick="postJob()">Post Job</button>
+            <p class="msg" id="postMsg"></p>
+        </div>
+
+        <!-- Meri Jobs -->
+        <h2>My Posted Jobs</h2>
+        <div id="jobList"></div>
+    </div>
+
+    <!-- Applications Modal -->
+    <div class="modal" id="modal">
+        <div class="modal-box">
+            <h3>Applications</h3>
+            <div id="appList"></div>
+            <button class="close-btn" onclick="closeModal()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        let token = localStorage.getItem("token");
+        let role = localStorage.getItem("role");
+        if (!token) window.location.href = "login.html";
+        if (role === "student") window.location.href = "jobs.html";
+
+        async function postJob() {
+            let title = document.getElementById("title").value;
+            let company = document.getElementById("company").value;
+            let location = document.getElementById("location").value;
+            let salary = document.getElementById("salary").value;
+            let description = document.getElementById("description").value;
+
+            let response = await fetch("http://localhost:8080/jobs", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "authorization": token
+                },
+                body: JSON.stringify({ title, company, location, salary, description })
+            });
+
+            let data = await response.json();
+            document.getElementById("postMsg").innerText = data.message;
+            loadJobs();
+        }
+
+        async function loadJobs() {
+            let response = await fetch("http://localhost:8080/jobs");
+            let jobs = await response.json();
+
+            let html = "";
+            jobs.forEach(job => {
+                html += `
+                    <div class="job-card">
+                        <div class="job-top">
+                            <h3>${job.title}</h3>
+                            <div class="job-actions">
+                                <button class="view-btn" onclick="viewApplications(${job.id})">View Applications</button>
+                                <button class="del-btn" onclick="deleteJob(${job.id})">Delete</button>
+                            </div>
+                        </div>
+                        <p class="job-info">🏢 ${job.company} • 📍 ${job.location} • ₹${job.salary.toLocaleString()}</p>
+                    </div>
+                `;
+            });
+
+            document.getElementById("jobList").innerHTML = html || "<p style='color:#999'>Koi job post nahi ki abhi tak</p>";
+        }
+
+        async function deleteJob(id) {
+            if (!confirm("Job delete karni hai?")) return;
+            await fetch(`http://localhost:8080/jobs/${id}`, {
+                method: "DELETE",
+                headers: { "authorization": token }
+            });
+            loadJobs();
+        }
+
+        async function viewApplications(jobId) {
+            let response = await fetch(`http://localhost:8080/jobs/${jobId}/applications`, {
+                headers: { "authorization": token }
+            });
+            let apps = await response.json();
+
+            let html = "";
+            if (apps.length === 0) {
+                html = "<p style='color:#999'>Koi application nahi abhi tak</p>";
+            }
+            apps.forEach(app => {
+                html += `
+                    <div class="app-card">
+                        <div class="app-info">
+                            <p><strong>${app.name}</strong></p>
+                            <small>${app.email}</small>
+                        </div>
+                        <div class="app-actions">
+                            ${app.status === 'pending' ? `
+                                <button class="acc-btn" onclick="updateStatus(${app.id}, 'accepted')">Accept</button>
+                                <button class="rej-btn" onclick="updateStatus(${app.id}, 'rejected')">Reject</button>
+                            ` : `<span class="status ${app.status}">${app.status}</span>`}
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById("appList").innerHTML = html;
+            document.getElementById("modal").classList.add("show");
+        }
+
+        async function updateStatus(appId, status) {
+            await fetch(`http://localhost:8080/applications/${appId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "authorization": token
+                },
+                body: JSON.stringify({ status })
+            });
+            closeModal();
+        }
+
+        function closeModal() {
+            document.getElementById("modal").classList.remove("show");
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = "login.html";
+        }
+
+        loadJobs();
+    </script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Applications</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial; background: #f0f2f5; }
+        nav { background: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        nav h1 { color: #667eea; }
+        nav a { color: #555; text-decoration: none; margin-left: 20px; }
+        .logout { padding: 8px 20px; background: #e74c3c; color: white !important; border-radius: 5px; }
+        .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+        h2 { margin-bottom: 20px; color: #333; }
+        .card { background: white; padding: 20px 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .info h3 { color: #333; margin-bottom: 5px; }
+        .info p { color: #999; font-size: 13px; }
+        .status { padding: 6px 15px; border-radius: 20px; font-size: 13px; font-weight: bold; }
+        .status.pending { background: #fff3cd; color: #856404; }
+        .status.accepted { background: #d4edda; color: #155724; }
+        .status.rejected { background: #f8d7da; color: #721c24; }
+        .empty { text-align: center; color: #999; padding: 50px; background: white; border-radius: 12px; }
+    </style>
+</head>
+<body>
+    <nav>
+        <h1>💼 JobPortal</h1>
+        <div>
+            <a href="jobs.html">Jobs</a>
+            <a href="#" class="logout" onclick="logout()">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h2>Meri Applications</h2>
+        <div id="appList"></div>
+    </div>
+
+    <script>
+        let token = localStorage.getItem("token");
+        if (!token) window.location.href = "login.html";
+
+        async function loadApplications() {
+            let response = await fetch("http://localhost:8080/applications", {
+                headers: { "authorization": token }
+            });
+            let apps = await response.json();
+
+            if (apps.length === 0) {
+                document.getElementById("appList").innerHTML = `
+                    <div class="empty">😔 No application yet — <a href="jobs.html">Search jobs</a></div>
+                `;
+                return;
+            }
+
+            let html = "";
+            apps.forEach(app => {
+                html += `
+                    <div class="card">
+                        <div class="info">
+                            <h3>${app.title}</h3>
+                            <p>🏢 ${app.company} • 📍 ${app.location}</p>
+                        </div>
+                        <span class="status ${app.status}">${app.status}</span>
+                    </div>
+                `;
+            });
+            document.getElementById("appList").innerHTML = html;
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = "login.html";
+        }
+
+        loadApplications();
+    </script>
+</body>
+</html>
